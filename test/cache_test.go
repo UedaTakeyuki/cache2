@@ -3,6 +3,7 @@ package cache
 import (
 	"log"
 	"testing"
+	"time"
 
 	cp "github.com/UedaTakeyuki/compare"
 	"local.packages/cache2"
@@ -72,6 +73,52 @@ func Test_02(t *testing.T) {
 		cp.Compare(t, err, nil)
 		//c.Delete(i)
 	}
+}
+
+// race condition
+func Test_03(t *testing.T) {
+	for i := 0; i < 100; i++ {
+		race(t)
+	}
+}
+
+func race(t *testing.T) {
+	const load = 10
+	log.SetFlags(log.LstdFlags | log.Lmicroseconds | log.Lshortfile)
+	c, err := cache2.NewCache(load, false)
+	cp.Compare(t, err, nil)
+
+	for i := 0; i < load; i++ {
+		c.AddOrReplace(i, i)
+	}
+
+	a := func() {
+		c.AddOrReplace(load, load)
+		log.Println("oldest one is updated")
+	}
+	b := func() {
+		_, exist := c.Get(0)
+		if !exist {
+			log.Println("already deleted")
+		} else {
+			err := c.MoveToBottom(0)
+			cp.Compare(t, err, nil)
+			cache, exist := c.Get(0)
+			cp.Compare(t, exist, true)
+			cp.Compare(t, cache.Value, 0)
+			log.Println("0 is move to bottom")
+
+			time.Sleep(time.Millisecond)
+
+			cache, exist = c.Get(1)
+			cp.Compare(t, exist, false)
+			cache, exist = c.Get(0)
+			cp.Compare(t, exist, true)
+		}
+	}
+	go a()
+	go b()
+	time.Sleep(2 * time.Millisecond)
 }
 
 func BenchmarkMoveToBottom(b *testing.B) {
