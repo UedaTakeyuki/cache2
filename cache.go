@@ -33,6 +33,8 @@ type Cache struct {
 	debug     bool
 }
 
+var mu sync.Mutex
+
 func NewCache(maxSize int, debug bool) (*Cache, error) {
 	cache := Cache{} // initialize
 	cache.maxSize = maxSize
@@ -43,6 +45,10 @@ func NewCache(maxSize int, debug bool) (*Cache, error) {
 
 // AddOrReplace
 func (cache *Cache) AddOrReplace(id interface{}, value interface{}) (result *CachedValueType) { // Add & Replace
+
+	mu.Lock()
+	defer mu.Unlock()
+
 	_, isExist := cache.valueMap[id]
 	if isExist {
 		// remove from fifo (then add to bottom later)
@@ -67,6 +73,10 @@ func (cache *Cache) AddOrReplace(id interface{}, value interface{}) (result *Cac
 
 // Get
 func (cache *Cache) Get(id interface{}) (c *CachedValueType, isExist bool) {
+
+	mu.Lock()
+	defer mu.Unlock()
+
 	c, isExist = cache.valueMap[id]
 	if isExist {
 		cache.toBottom(id)
@@ -82,6 +92,10 @@ func (cache *Cache) Get(id interface{}) (c *CachedValueType, isExist bool) {
 
 // Delete
 func (cache *Cache) Delete(id interface{}) {
+
+	mu.Lock()
+	defer mu.Unlock()
+
 	// remove from CacheTable
 	delete(cache.valueMap, id)
 	// remove from CacheOrder
@@ -97,6 +111,10 @@ func (cache *Cache) Delete(id interface{}) {
 
 // move to Bottom
 func (cache *Cache) MoveToBottom(id interface{}) (err error) {
+
+	mu.Lock()
+	defer mu.Unlock()
+
 	_, isExist := cache.valueMap[id]
 	if isExist {
 		cache.toBottom(id)

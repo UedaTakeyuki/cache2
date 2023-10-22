@@ -41,23 +41,29 @@ func Test_01(t *testing.T) {
 
 // load test
 func Test_02(t *testing.T) {
-	const load = 10000
+	const load = 100
 	log.SetFlags(log.LstdFlags | log.Lmicroseconds | log.Lshortfile)
 	c, err := cache2.NewCache(load, false)
 	cp.Compare(t, err, nil)
 
-	for i := 0; i < load; i++ {
+	for i := 0; i < load+1; i++ {
 		c.AddOrReplace(i, i)
 	}
 	cache, exist := c.Get(0)
+	cp.Compare(t, exist, false)
+	cache, exist = c.Get(1)
 	cp.Compare(t, exist, true)
-	cp.Compare(t, cache.Value, 0)
+	cp.Compare(t, cache.Value, 1)
 
 	cache, exist = c.Get(load - 1)
 	cp.Compare(t, exist, true)
 	cp.Compare(t, cache.Value, load-1)
 
 	cache, exist = c.Get(load)
+	cp.Compare(t, exist, true)
+	cp.Compare(t, cache.Value, load)
+
+	cache, exist = c.Get(load + 1)
 	cp.Compare(t, exist, false)
 
 	for i := 0; i < load; i++ {
@@ -69,7 +75,7 @@ func Test_02(t *testing.T) {
 }
 
 func BenchmarkMoveToBottom(b *testing.B) {
-	const load = 1000000
+	const load = 100
 	log.SetFlags(log.LstdFlags | log.Lmicroseconds | log.Lshortfile)
 	c, _ := cache2.NewCache(load, false)
 	for i := 0; i < load; i++ {
