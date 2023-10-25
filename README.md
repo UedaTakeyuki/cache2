@@ -1,6 +1,6 @@
 # cache2
 
-The **simplest** cache implementation of **key-value** data which keeps the **most recently used value** at the **end**.
+The **simplest** cache implementation for **key-value** data. The **most recently used** is kept at the **end**.
 
 ## How to use
 
