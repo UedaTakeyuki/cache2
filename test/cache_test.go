@@ -15,14 +15,14 @@ func Test_01(t *testing.T) {
 	c, err := cache2.NewCache(3, true)
 	cp.Compare(t, err, nil)
 	{
-		cache := c.AddOrReplace(1, "a")
-		cp.Compare(t, cache.Value, "a")
+		value := c.AddOrReplace(1, "a")
+		cp.Compare(t, value, "a")
 	}
 	c.AddOrReplace(2, "b")
 	c.AddOrReplace(3, "c")
 	{
-		cache, exist := c.Get(1)
-		cp.Compare(t, cache.Value, "a")
+		value, exist := c.Get(1)
+		cp.Compare(t, value, "a")
 		cp.Compare(t, exist, true)
 	}
 	c.AddOrReplace(4, "d")
@@ -33,9 +33,9 @@ func Test_01(t *testing.T) {
 		// should not be exist, already deleted.
 		_, exist = c.Get(2)
 		cp.Compare(t, exist, false)
-		cache, exist := c.Get(4)
+		value, exist := c.Get(4)
 		cp.Compare(t, exist, true)
-		cp.Compare(t, cache.Value, "d")
+		cp.Compare(t, value, "d")
 	}
 	c.AddOrReplace(5, "e")
 }
@@ -50,21 +50,21 @@ func Test_02(t *testing.T) {
 	for i := 0; i < load+1; i++ {
 		c.AddOrReplace(i, i)
 	}
-	cache, exist := c.Get(0)
+	value, exist := c.Get(0)
 	cp.Compare(t, exist, false)
-	cache, exist = c.Get(1)
+	value, exist = c.Get(1)
 	cp.Compare(t, exist, true)
-	cp.Compare(t, cache.Value, 1)
+	cp.Compare(t, value, 1)
 
-	cache, exist = c.Get(load - 1)
+	value, exist = c.Get(load - 1)
 	cp.Compare(t, exist, true)
-	cp.Compare(t, cache.Value, load-1)
+	cp.Compare(t, value, load-1)
 
-	cache, exist = c.Get(load)
+	value, exist = c.Get(load)
 	cp.Compare(t, exist, true)
-	cp.Compare(t, cache.Value, load)
+	cp.Compare(t, value, load)
 
-	cache, exist = c.Get(load + 1)
+	value, exist = c.Get(load + 1)
 	cp.Compare(t, exist, false)
 
 	for i := 0; i < load; i++ {
@@ -75,8 +75,32 @@ func Test_02(t *testing.T) {
 	}
 }
 
-// race condition
+// getNextFunc
 func Test_03(t *testing.T) {
+	log.SetFlags(log.LstdFlags | log.Lmicroseconds | log.Lshortfile)
+	c, err := cache2.NewCache(3, true)
+	cp.Compare(t, err, nil)
+	{
+		val := c.AddOrReplace(1, "a")
+		cp.Compare(t, val, "a")
+	}
+	{
+		val := c.AddOrReplace(2, "b")
+		cp.Compare(t, val, "b")
+	}
+	{
+		val := c.AddOrReplace(3, "c")
+		cp.Compare(t, val, "c")
+	}
+	getNext := c.GetNextFunc()
+	cp.Compare(t, getNext(), "a")
+	cp.Compare(t, getNext(), "b")
+	cp.Compare(t, getNext(), "c")
+	cp.Compare(t, getNext(), nil)
+}
+
+// race condition
+func Test_04(t *testing.T) {
 	for i := 0; i < 100; i++ {
 		race(t)
 	}
@@ -103,16 +127,16 @@ func race(t *testing.T) {
 		} else {
 			err := c.MoveToBottom(0)
 			cp.Compare(t, err, nil)
-			cache, exist := c.Get(0)
+			value, exist := c.Get(0)
 			cp.Compare(t, exist, true)
-			cp.Compare(t, cache.Value, 0)
+			cp.Compare(t, value, 0)
 			log.Println("0 is move to bottom")
 
 			time.Sleep(time.Millisecond)
 
-			cache, exist = c.Get(1)
+			_, exist = c.Get(1)
 			cp.Compare(t, exist, false)
-			cache, exist = c.Get(0)
+			_, exist = c.Get(0)
 			cp.Compare(t, exist, true)
 		}
 	}

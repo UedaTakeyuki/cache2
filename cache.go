@@ -15,12 +15,6 @@ import (
 	"time"
 )
 
-type CachedValueType struct {
-	Mu    sync.Mutex
-	Value interface{}
-	cache *Cache
-}
-
 type fifoElmType struct {
 	lastUpdated int64
 	id          interface{}
@@ -28,7 +22,7 @@ type fifoElmType struct {
 
 type Cache struct {
 	maxSize   int
-	valueMap  map[interface{}]*CachedValueType
+	valueMap  map[interface{}]interface{}
 	fifoArray []fifoElmType
 	debug     bool
 }
@@ -38,13 +32,13 @@ var mu sync.Mutex
 func NewCache(maxSize int, debug bool) (*Cache, error) {
 	cache := Cache{} // initialize
 	cache.maxSize = maxSize
-	cache.valueMap = map[interface{}]*CachedValueType{}
+	cache.valueMap = map[interface{}]interface{}{}
 	cache.debug = debug
 	return &cache, nil
 }
 
 // AddOrReplace
-func (cache *Cache) AddOrReplace(id interface{}, value interface{}) (result *CachedValueType) { // Add & Replace
+func (cache *Cache) AddOrReplace(id interface{}, value interface{}) (result interface{}) { // Add & Replace
 
 	mu.Lock()
 	defer mu.Unlock()
@@ -59,7 +53,7 @@ func (cache *Cache) AddOrReplace(id interface{}, value interface{}) (result *Cac
 		cache.fifoArray = cache.fifoArray[1:]
 	}
 	// add (or replace) new one
-	result = makeValue(value, cache)
+	result = value
 	cache.valueMap[id] = result
 	cache.fifoArray = append(cache.fifoArray, makeFifoElm(id))
 
@@ -72,12 +66,12 @@ func (cache *Cache) AddOrReplace(id interface{}, value interface{}) (result *Cac
 }
 
 // Get
-func (cache *Cache) Get(id interface{}) (c *CachedValueType, isExist bool) {
+func (cache *Cache) Get(id interface{}) (value interface{}, isExist bool) {
 
 	mu.Lock()
 	defer mu.Unlock()
 
-	c, isExist = cache.valueMap[id]
+	value, isExist = cache.valueMap[id]
 	if isExist {
 		cache.toBottom(id)
 	}
@@ -107,6 +101,22 @@ func (cache *Cache) Delete(id interface{}) {
 	}
 
 	return
+}
+
+// https://zenn.dev/toriwasa/articles/c7428879d624cd
+func (cache *Cache) GetNextFunc() func() interface{} {
+	i := -1
+
+	return func() interface{} {
+		i++
+		if i < len(cache.valueMap) {
+			value, _ := cache.valueMap[cache.fifoArray[i].id]
+			log.Println("value", value)
+			return value
+		} else {
+			return nil
+		}
+	}
 }
 
 // move to Bottom
@@ -151,14 +161,6 @@ func (cache *Cache) toBottom(id interface{}) {
 // Helper functions
 //
 
-// make body
-func makeValue(value interface{}, cache *Cache) (v *CachedValueType) {
-	v = new(CachedValueType)
-	v.Value = value
-	v.cache = cache
-	return
-}
-
 // make fifoElm
 func makeFifoElm(key interface{}) fifoElmType {
 	return fifoElmType{id: key, lastUpdated: time.Now().Unix()}
@@ -176,19 +178,11 @@ func (cache *Cache) DumpKeys() {
 // Dump valueMap
 func (cache *Cache) DumpValueMap() {
 	log.Println("len(cache.valueMap)", len(cache.valueMap))
-	log.Println("cache.valueMap", cache.MakeKeyValueMap())
+	log.Println("cache.valueMap", cache.valueMap)
 }
 
 // Dump fifoArray
 func (cache *Cache) DumpFifoArray() {
 	log.Println("len(cache.fifoArray)", len(cache.fifoArray))
 	log.Println("cache.fifoArray", cache.fifoArray)
-}
-
-func (cache *Cache) MakeKeyValueMap() (result map[interface{}]interface{}) {
-	result = map[interface{}]interface{}{}
-	for key, value := range cache.valueMap {
-		result[key] = value.Value
-	}
-	return
 }
