@@ -17,7 +17,7 @@ type User struct {
 
 func main(){
   // create cache
-  c, err := cache2.NewCache(100 /* number of cache. */, false /* debug flag*/)
+  c, err := cache2.NewCache(100 /* number of cache elements. */, false /* debug flag*/)
 
   // push key 1 (int) and value "a" (string)
   result := c.AddOrReplace(1, "a")
