@@ -19,11 +19,11 @@ func main(){
   // create cache
   c, err := cache2.NewCache(100 /* number of cache. */, false /* debug flag*/)
 
-  // AddOrReplace key 1 (int) and value "a" (string)
+  // push key 1 (int) and value "a" (string)
   result := c.AddOrReplace(1, "a")
   log.Println(result) // print as "a"
 
-  // AddOrReplace key a (string) and value as pointer of struct
+  // push key a (string) and value as pointer of struct
   usr := new(User)
   usr.ID = "id"
   usr.PW = "pw"
@@ -33,8 +33,8 @@ func main(){
   // update the value of key 1 (int) by "b"
   c.AddOrReplace(1, "b")
 
-  // No need to AddOrReplace usr after appdate of the member because usr is a poiner.
-  // Instead call MoveToBottom with id 1 to move the key to the bottom of the cache.
+  // Even after updating the member of "usr", no need to call AddOrReplace because the kept value is a **poiner** of User struct which is already pushed on the cache.
+  // Instead call MoveToBottom with id 1 to move to the bottom.
   usr.PW = "intricate PW"
   c.MoveToBottom(1)
 }
