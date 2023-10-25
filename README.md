@@ -34,7 +34,7 @@ func main(){
   c.AddOrReplace(1, "b")
 
   // Even after updating the member of "usr", no need to call AddOrReplace because the kept value is a **poiner** of User struct which is already pushed on the cache.
-  // Instead call MoveToBottom with id 1 to move to the bottom.
+  // Instead call MoveToBottom with key 1 to move to the bottom.
   usr.PW = "intricate PW"
   c.MoveToBottom(1)
 }
