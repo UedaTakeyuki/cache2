@@ -160,3 +160,33 @@ func BenchmarkMoveToBottom(b *testing.B) {
 	}
 	b.StopTimer()
 }
+
+func BenchmarkAddOrReplace(b *testing.B) {
+	const load = 100
+	log.SetFlags(log.LstdFlags | log.Lmicroseconds | log.Lshortfile)
+	c, _ := cache2.NewCache(load, false)
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		c.AddOrReplace(i, i)
+	}
+	b.StopTimer()
+}
+
+func BenchmarkGet(b *testing.B) {
+	const load = 100
+	log.SetFlags(log.LstdFlags | log.Lmicroseconds | log.Lshortfile)
+	c, _ := cache2.NewCache(load, false)
+	for i := 0; i < load; i++ {
+		c.AddOrReplace(i, i)
+	}
+	var value interface{}
+	var exist bool
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		value, exist = c.Get(i)
+	}
+	b.StopTimer()
+	if exist {
+		log.Println(value)
+	}
+}
